@@ -108,7 +108,7 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
         self.args = args
         self.data_dir = args.data            
         self.target_dict = target_dict
-        self.bpe = self.build_bpe(args)            
+        self.bpe = self.build_bpe(args)
 
     def load_dataset(self, split, **kwargs):
         if not hasattr(self.args, 'input_size') or not self.args.input_size:
@@ -149,21 +149,13 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
     def target_dictionary(self):        
         return self.target_dict
 
-    def build_generator(
-        self, models, args, seq_gen_cls=None, extra_gen_cls_kwargs=None
-    ):
+    def build_generator(self, models, args, seq_gen_cls=None, extra_gen_cls_kwargs=None):
         if getattr(args, "score_reference", False):
             from fairseq.sequence_scorer import SequenceScorer
 
-            return SequenceScorer(
-                self.target_dictionary,
-                compute_alignment=getattr(args, "print_alignment", False),
-            )
+            return SequenceScorer(self.target_dictionary, compute_alignment=getattr(args, "print_alignment", False))
 
-        from fairseq.sequence_generator import (
-            SequenceGenerator,
-            SequenceGeneratorWithAlignment,
-        )
+        from fairseq.sequence_generator import (SequenceGenerator, SequenceGeneratorWithAlignment)
         try:
             from .generator import TextRecognitionGenerator
         except:
@@ -201,13 +193,10 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
         assert sampling_topp < 0 or sampling, "--sampling-topp requires --sampling"
 
         if sampling:
-            search_strategy = search.Sampling(
-                self.target_dictionary, sampling_topk, sampling_topp
-            )
+            search_strategy = search.Sampling(self.target_dictionary, sampling_topk, sampling_topp)
         elif diverse_beam_groups > 0:
-            search_strategy = search.DiverseBeamSearch(
-                self.target_dictionary, diverse_beam_groups, diverse_beam_strength
-            )
+            search_strategy = search.DiverseBeamSearch(self.target_dictionary, diverse_beam_groups,
+                                                       diverse_beam_strength)
         elif match_source_len:
             # this is useful for tagging applications where the output
             # length should match the input length, so we hardcode the
@@ -220,17 +209,11 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
                 max_len_b=0,
             )
         elif diversity_rate > -1:
-            search_strategy = search.DiverseSiblingsSearch(
-                self.target_dictionary, diversity_rate
-            )
+            search_strategy = search.DiverseSiblingsSearch(self.target_dictionary, diversity_rate)
         elif constrained:
-            search_strategy = search.LexicallyConstrainedBeamSearch(
-                self.target_dictionary, args.constraints
-            )
+            search_strategy = search.LexicallyConstrainedBeamSearch(self.target_dictionary, args.constraints)
         elif prefix_allowed_tokens_fn:
-            search_strategy = search.PrefixConstrainedBeamSearch(
-                self.target_dictionary, prefix_allowed_tokens_fn
-            )
+            search_strategy = search.PrefixConstrainedBeamSearch(self.target_dictionary, prefix_allowed_tokens_fn)
         else:
             search_strategy = search.BeamSearch(self.target_dictionary)
 

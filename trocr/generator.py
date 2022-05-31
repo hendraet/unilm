@@ -1,19 +1,22 @@
-import torch
 import math
-
 from typing import Dict, List, Optional
 
+import torch
 from fairseq.sequence_generator import SequenceGenerator
 from torch import Tensor
 
+
 class TextRecognitionGenerator(SequenceGenerator):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def _generate(
-        self,
-        sample: Dict[str, Dict[str, Tensor]],
-        prefix_tokens: Optional[Tensor] = None,
-        constraints: Optional[Tensor] = None,
-        bos_token: Optional[int] = None,
+            self,
+            sample: Dict[str, Dict[str, Tensor]],
+            prefix_tokens: Optional[Tensor] = None,
+            constraints: Optional[Tensor] = None,
+            bos_token: Optional[int] = None,
     ):
         incremental_states = torch.jit.annotate(
             List[Dict[str, Dict[str, Optional[Tensor]]]],
@@ -25,16 +28,15 @@ class TextRecognitionGenerator(SequenceGenerator):
         net_input = sample["net_input"]
         device = sample["net_input"]["imgs"].device
 
-
-        # compute the encoder output for each beam        
-            # "encoder_out": [x],  # T x B x C
-            # "encoder_padding_mask": [encoder_padding_mask],  # B x T
-            # "encoder_embedding": [encoder_embedding],  # B x T x C
-            # "encoder_states": [],  # List[T x B x C]
-            # "src_tokens": [],
-            # "src_lengths": [],        
+        # compute the encoder output for each beam
+        # "encoder_out": [x],  # T x B x C  B = batch_size, T = src length C = Embedding Size
+        # "encoder_padding_mask": [encoder_padding_mask],  # B x T
+        # "encoder_embedding": [encoder_embedding],  # B x T x C
+        # "encoder_states": [],  # List[T x B x C]
+        # "src_tokens": [],
+        # "src_lengths": [],
         encoder_outs = self.model.forward_encoder(net_input)  # T x B x C
-        src_lengths = encoder_outs[0]['encoder_padding_mask'][0].eq(0).long().sum(dim=1) # B
+        src_lengths = encoder_outs[0]['encoder_padding_mask'][0].eq(0).long().sum(dim=1)  # B
         src_tokens = encoder_outs[0]['encoder_padding_mask'][0]  # B x T
 
         # bsz: total number of sentences in beam
@@ -42,7 +44,7 @@ class TextRecognitionGenerator(SequenceGenerator):
         bsz, src_len = src_tokens.size()[:2]
         beam_size = self.beam_size
 
-        if constraints is not None and not self.search.supports_constraints:
+        if constraints is not None and not self.search.supports_constraints:  # TODO: Can be ignored since doesn't support constraints
             raise NotImplementedError(
                 "Target-side constraints were provided, but search method doesn't support them"
             )
@@ -60,9 +62,8 @@ class TextRecognitionGenerator(SequenceGenerator):
                 self.model.max_decoder_positions() - 1,
             )
         assert (
-            self.min_len <= max_len
+                self.min_len <= max_len
         ), "min_len cannot be larger than max_len, please adjust these!"
-
 
         # placeholder of indices for bsz * beam_size to hold tokens and accumulative scores
         new_order = torch.arange(bsz).view(-1, 1).repeat(1, beam_size).view(-1)
@@ -77,9 +78,9 @@ class TextRecognitionGenerator(SequenceGenerator):
         )  # +1 for eos; pad is never chosen for scoring
         tokens = (
             torch.zeros(bsz * beam_size, max_len + 2)
-            .to(src_tokens)
-            .long()
-            .fill_(self.pad)
+                .to(src_tokens)
+                .long()
+                .fill_(self.pad)
         )  # +2 for eos and pad
         tokens[:, 0] = self.eos if bos_token is None else bos_token
         attn: Optional[Tensor] = None
@@ -109,9 +110,9 @@ class TextRecognitionGenerator(SequenceGenerator):
         # offset arrays for converting between different indexing schemes
         bbsz_offsets = (
             (torch.arange(0, bsz) * beam_size)
-            .unsqueeze(1)
-            .type_as(tokens)
-            .to(src_tokens.device)
+                .unsqueeze(1)
+                .type_as(tokens)
+                .to(src_tokens.device)
         )
         cand_offsets = torch.arange(0, cand_size).type_as(tokens).to(src_tokens.device)
 
@@ -164,13 +165,13 @@ class TextRecognitionGenerator(SequenceGenerator):
             # handle max length constraint
             if step >= max_len:
                 lprobs[:, : self.eos] = -math.inf
-                lprobs[:, self.eos + 1 :] = -math.inf
+                lprobs[:, self.eos + 1:] = -math.inf
 
             # handle prefix tokens (possibly with different lengths)
             if (
-                prefix_tokens is not None
-                and step < prefix_tokens.size(1)
-                and step < max_len
+                    prefix_tokens is not None
+                    and step < prefix_tokens.size(1)
+                    and step < max_len
             ):
                 lprobs, tokens, scores = self._prefix_tokens(
                     step, lprobs, scores, tokens, prefix_tokens, beam_size
@@ -372,4 +373,3 @@ class TextRecognitionGenerator(SequenceGenerator):
                 List[Dict[str, Tensor]], finalized[sent]
             )
         return finalized
-

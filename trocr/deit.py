@@ -59,9 +59,9 @@ class PatchEmbedForApe(nn.Module):
 
 
 class DistilledVisionTransformer(VisionTransformer):
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
-                 num_heads=12, mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None,
-                 drop_rate=0., attn_drop_rate=0., drop_path_rate=0., hybrid_backbone=None, norm_layer=None, ape=False, mask_ratio=0.0):
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12, num_heads=12,
+                 mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None, drop_rate=0., attn_drop_rate=0.,
+                 drop_path_rate=0., hybrid_backbone=None, norm_layer=None, ape=False, mask_ratio=0.0):
         super().__init__(img_size=img_size, patch_size=patch_size, in_chans=in_chans, num_classes=num_classes, embed_dim=embed_dim, depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale, representation_size=representation_size, drop_rate=drop_rate, attn_drop_rate=attn_drop_rate, drop_path_rate=drop_path_rate, hybrid_backbone=hybrid_backbone, norm_layer=norm_layer)
         self.ape = ape
         self.mask_ratio = mask_ratio
@@ -124,9 +124,12 @@ class DistilledVisionTransformer(VisionTransformer):
 
 class AdaptedVisionTransformer(VisionTransformer):
     def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
-                 num_heads=12, mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None,
-                 drop_rate=0., attn_drop_rate=0., drop_path_rate=0., hybrid_backbone=None, norm_layer=None, ape=False, mask_ratio=0.0):
-        super().__init__(img_size=img_size, patch_size=patch_size, in_chans=in_chans, num_classes=num_classes, embed_dim=embed_dim, depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale, representation_size=representation_size, drop_rate=drop_rate, attn_drop_rate=attn_drop_rate, drop_path_rate=drop_path_rate, hybrid_backbone=hybrid_backbone, norm_layer=norm_layer)
+                 num_heads=12, mlp_ratio=4., qkv_bias=True, representation_size=None,
+                 drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=None, ape=False, mask_ratio=0.0):
+        super().__init__(img_size=img_size, patch_size=patch_size, in_chans=in_chans, num_classes=num_classes,
+                         embed_dim=embed_dim, depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias,
+                         representation_size=representation_size, drop_rate=drop_rate, attn_drop_rate=attn_drop_rate,
+                         drop_path_rate=drop_path_rate, norm_layer=norm_layer)
         self.ape = ape
         self.mask_ratio = mask_ratio
 
