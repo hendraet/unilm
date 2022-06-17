@@ -129,7 +129,7 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
         if self.args.preprocess == 'DA2':            
             tfm = build_data_aug(input_size, mode=split)            
         else:
-            raise Exception('Undeined image preprocess method.')
+            raise Exception('Undefined image preprocess method.')
         
         # load the dataset
         if self.args.data_type == 'SROIE':
