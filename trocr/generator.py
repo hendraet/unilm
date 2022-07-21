@@ -44,7 +44,7 @@ class TextRecognitionGenerator(SequenceGenerator):
         bsz, src_len = src_tokens.size()[:2]
         beam_size = self.beam_size
 
-        if constraints is not None and not self.search.supports_constraints:  # TODO: Can be ignored since doesn't support constraints
+        if constraints is not None and not self.search.supports_constraints:
             raise NotImplementedError(
                 "Target-side constraints were provided, but search method doesn't support them"
             )
@@ -266,7 +266,7 @@ class TextRecognitionGenerator(SequenceGenerator):
                     bsz, dtype=torch.bool, device=cand_indices.device
                 )
                 batch_mask[finalized_sents] = False
-                # TODO replace `nonzero(as_tuple=False)` after TorchScript supports it
+
                 batch_idxs = torch.arange(
                     bsz, device=cand_indices.device
                 ).masked_select(batch_mask)

@@ -14,7 +14,6 @@ export PRETRAINED_MODEL=/models/trocr-base-stage1.pt
  # --bpe sentencepiece --sentencepiece-model ./unilm3-cased.model --decoder-pretrained unilm ## For small models
 #CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=1 \
 #python3 -m torch.distributed.launch --nproc_per_node=1 \
-# TODO: --fp16 not working on older archs (only 2080)
 python3 $(which fairseq-train) \
     --data-type STR --user-dir ./ --task text_recognition \
     --arch trocr_base \

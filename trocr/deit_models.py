@@ -35,6 +35,8 @@ except:
 @register_model('DeiT_TR')
 @register_model('TrOCR')
 class TrOCRModel(FairseqEncoderDecoderModel):
+    def __init__(self, encoder, decoder):
+        super().__init__(encoder, decoder)
 
     def load_state_dict(
             self,
@@ -53,13 +55,12 @@ class TrOCRModel(FairseqEncoderDecoderModel):
         from fairseq.checkpoint_utils import prune_state_dict
 
         new_state_dict = prune_state_dict(state_dict, model_cfg)
-        if not model_cfg.ape:
+        if hasattr(model_cfg, 'ape') and not model_cfg.ape:
             model_seq_len = self.state_dict()['encoder.deit.pos_embed'].shape[1]
             ckpt_seq_len = new_state_dict['encoder.deit.pos_embed'].shape[1]
             logger.warning('Load from encoder.deit {:d} seq len to {:d}'.format(ckpt_seq_len, model_seq_len))
             if model_seq_len <= ckpt_seq_len:
-                new_state_dict['encoder.deit.pos_embed'] = new_state_dict['encoder.deit.pos_embed'][:, :model_seq_len,
-                                                           :]
+                new_state_dict['encoder.deit.pos_embed'] = new_state_dict['encoder.deit.pos_embed'][:, :model_seq_len, :]
             else:
                 t = self.state_dict()['encoder.deit.pos_embed']
                 t[:, :ckpt_seq_len, :] = new_state_dict['encoder.deit.pos_embed']
@@ -100,7 +101,7 @@ class TrOCRModel(FairseqEncoderDecoderModel):
 
     @staticmethod
     def read_args_from_roberta(roberta_args: argparse.Namespace):
-        # TODO: this would become easier if encoder/decoder where using a similar
+        
         # TransformerConfig object
         args = argparse.Namespace(**vars(roberta_args))
         attr_map = [
@@ -126,12 +127,16 @@ class TrOCRModel(FairseqEncoderDecoderModel):
 
     @classmethod
     def build_model(cls, args, task):
-        encoder = TrOCREncoder(
-            args=args,
-            dictionary=task.source_dictionary
-        )
-
-        args.encoder_embed_dim = encoder.deit.embed_dim
+        if args.use_mae:
+            from networks.mae.mae_trocr import MAEEncoder
+            encoder = MAEEncoder(args=args)
+            args.encoder_embed_dim = encoder.mae.embed_dim
+        else:
+            encoder = TrOCREncoder(
+                args=args,
+                dictionary=task.source_dictionary
+            )
+            args.encoder_embed_dim = encoder.deit.embed_dim
 
         if getattr(args, "max_target_positions", None) is None:
             args.max_target_positions = DEFAULT_MAX_TARGET_POSITIONS
@@ -381,7 +386,16 @@ class TrOCRModel(FairseqEncoderDecoderModel):
         return emb
 
     def forward(self, imgs, prev_output_tokens, **kwargs):
-        encoder_out = self.encoder(imgs, **kwargs)
+        # imgs: BSZ, 3, 384, 384
+        encoder_out = self.encoder(imgs, **kwargs)  # kwargs are empty
+        # out_dict: {
+        #   'encoder_out': NUM_PATCHES + 1, BSZ, EMBED_DIM (768),
+        #   'encoder_padding_mask': BSZ, NUM_PATCHES + 1 (all 0.)
+        #    encoder_embedding: BSZ, NUM_PATCHES + 1, EMBED_DIM (768),
+        #    encoder_states: []
+        #    src_lengths: []
+        #    src_tokkens: []
+        # }
         decoder_out = self.decoder(
             prev_output_tokens, encoder_out=encoder_out, **kwargs
         )
