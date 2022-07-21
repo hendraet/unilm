@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import random
@@ -187,12 +188,31 @@ def STR(gt_path, bpe_parser):
     return data
 
 
+def STR_JSON(gt_path, bpe_parser, limit=None):
+    root_dir = os.path.dirname(gt_path)
+    data = []
+    with open(gt_path, 'r') as fp:
+        json_data = json.load(fp)
+
+    limit = limit or len(json_data)
+    for img_id, sample in enumerate(tqdm(json_data[:limit], desc=f'Loading JSON STR {gt_path}:')):
+        img_path = os.path.join(root_dir, sample['path'])
+        if not bpe_parser:
+            encoded_str = sample['string']
+        else:
+            encoded_str = bpe_parser.encode(sample['string'])
+
+        data.append({'img_path': img_path, 'image_id': img_id, 'text': sample['string'], 'encoded_str': encoded_str})
+
+    return data
+
+
 class SyntheticTextRecognitionDataset(FairseqDataset):
-    def __init__(self, gt_path, tfm, bpe_parser, target_dict):
+    def __init__(self, gt_path, tfm, bpe_parser, target_dict, use_json=False, limit=None):
         self.gt_path = gt_path
         self.tfm = tfm
         self.target_dict = target_dict
-        self.data = STR(gt_path, bpe_parser)
+        self.data = STR_JSON(gt_path, bpe_parser, limit=limit) if use_json else STR(gt_path, bpe_parser)
 
     def __len__(self):
         return len(self.data)
@@ -205,6 +225,7 @@ class SyntheticTextRecognitionDataset(FairseqDataset):
         input_ids = self.target_dict.encode_line(encoded_str, add_if_not_exist=False)
 
         tfm_img = self.tfm(image)  # h, w, c
+
         return {'id': idx, 'tfm_img': tfm_img, 'label_ids': input_ids}
 
     def size(self, idx):

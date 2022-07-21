@@ -1,4 +1,7 @@
 import os
+from argparse import Namespace
+from pathlib import Path
+
 from fairseq import search
 
 from fairseq.data import Dictionary, encoders
@@ -42,7 +45,8 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
         # parser.add_argument('--crop-img-output-dir', type=str, default=None,
         #                     help='the output dir for the crop images')   
         parser.add_argument('--data-type', type=str, default='SROIE',
-                            help='the dataset type used for the task (SROIE or Receipt53K)')        
+                            help='the dataset type used for the task (SROIE or Receipt53K)')
+        parser.add_argument('--debug', action='store_true', default=False, help='If true will enhance speed')
 
         # Augmentation parameters
         parser.add_argument('--color-jitter', type=float, default=0.4, metavar='PCT',
@@ -81,9 +85,15 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
                 dict_file_like = io.StringIO(dict_content)
                 target_dict = Dictionary.load(dict_file_like)
             elif args.decoder_pretrained.startswith('roberta'):
-                url = 'https://layoutlm.blob.core.windows.net/trocr/dictionaries/gpt2_with_mask.dict.txt'
-                logger.info('Load gpt2 dictionary from {}'.format(url))            
-                dict_content = urllib.request.urlopen(url).read().decode()
+                dict_path = Path('unilm/trocr/gpt2_with_mask.dict.txt')
+                if dict_path.exists():
+                    logger.info(f'Load gpt2 dictionary from {str(dict_path)}')
+                    with dict_path.open('r') as f:
+                        dict_content = f.read()
+                else:
+                    url = 'https://layoutlm.blob.core.windows.net/trocr/dictionaries/gpt2_with_mask.dict.txt'
+                    logger.info(f'Load gpt2 dictionary from {url}')
+                    dict_content = urllib.request.urlopen(url).read().decode()
                 dict_file_like = io.StringIO(dict_content)
                 target_dict = Dictionary.load(dict_file_like)
             else:
@@ -138,6 +148,11 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
         elif self.args.data_type == 'STR':
             gt_path = os.path.join(self.data_dir, 'gt_{}.txt'.format(split))            
             self.datasets[split] = SyntheticTextRecognitionDataset(gt_path, tfm, self.bpe, self.target_dict)
+        elif self.args.data_type == 'STR_JSON':
+            gt_path = os.path.join(self.data_dir, f'gt_{split}.json')
+            limit = 16 if self.args.debug else None
+            self.datasets[split] = SyntheticTextRecognitionDataset(gt_path, tfm, self.bpe, self.target_dict,
+                                                                   use_json=True, limit=limit)
         else:
             raise Exception('Not defined dataset type: ' + self.args.data_type)
     
@@ -148,6 +163,9 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
     @property
     def target_dictionary(self):        
         return self.target_dict
+
+    def build_criterion(self, args: Namespace):
+        return super().build_criterion(args)  # TODO: can be removed since it is only used for debugging
 
     def build_generator(self, models, args, seq_gen_cls=None, extra_gen_cls_kwargs=None):
         if getattr(args, "score_reference", False):
