@@ -98,6 +98,9 @@ class TrOCRModel(FairseqEncoderDecoderModel):
             '--mask-ratio', default=0.0, type=float,
             help='the mask ratio for the encoder output masking.'
         )
+        parser.add_argument(
+            '--use-mae', action='store_true', default=False, help='Use MAE encoder instead of TROCR'
+        )
 
     @staticmethod
     def read_args_from_roberta(roberta_args: argparse.Namespace):

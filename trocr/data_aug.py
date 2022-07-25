@@ -126,7 +126,8 @@ class KeepOriginal(torch.nn.Module):
         return img    
 
 
-def build_data_aug(size, mode, resnet=False, resizepad=False):
+def build_data_aug(size, mode, resnet=False, resizepad=False, input_dims=3):
+    tfms = []
     if resnet:
         norm_tfm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     else:
@@ -136,7 +137,7 @@ def build_data_aug(size, mode, resnet=False, resizepad=False):
     else:
         resize_tfm = transforms.Resize(size, interpolation=InterpolationMode.BICUBIC)
     if mode == 'train':
-        return transforms.Compose([
+        tfms.extend([
             WeightedRandomChoice([
                 # transforms.RandomHorizontalFlip(p=1),
                 transforms.RandomRotation(degrees=(-10, 10), expand=True, fill=255),
@@ -152,11 +153,14 @@ def build_data_aug(size, mode, resnet=False, resizepad=False):
             norm_tfm
         ])
     else:
-        return transforms.Compose([
+        tfms.extend([
             resize_tfm,
             transforms.ToTensor(),
             norm_tfm
         ])
+    if input_dims == 1:
+        tfms.append(transforms.Grayscale())
+    return transforms.Compose(tfms)
 
 
 if __name__ == '__main__':

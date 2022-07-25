@@ -137,7 +137,7 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
             input_size = (input_size, input_size)
 
         if self.args.preprocess == 'DA2':            
-            tfm = build_data_aug(input_size, mode=split)            
+            tfm = build_data_aug(input_size, mode=split, input_dims=getattr(self.args, 'input_dim', 3))
         else:
             raise Exception('Undefined image preprocess method.')
         
@@ -163,9 +163,6 @@ class SROIETextRecognitionTask(LegacyFairseqTask):
     @property
     def target_dictionary(self):        
         return self.target_dict
-
-    def build_criterion(self, args: Namespace):
-        return super().build_criterion(args)  # TODO: can be removed since it is only used for debugging
 
     def build_generator(self, models, args, seq_gen_cls=None, extra_gen_cls_kwargs=None):
         if getattr(args, "score_reference", False):
