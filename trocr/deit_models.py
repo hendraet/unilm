@@ -131,7 +131,7 @@ class TrOCRModel(FairseqEncoderDecoderModel):
     @classmethod
     def build_model(cls, args, task):
         if getattr(args, 'use_mae', None) and args.use_mae:
-            from networks.mae.mae_trocr import MAEEncoder
+            from networks.mae.matter import MAEEncoder
             encoder = MAEEncoder(args=args)
             args.encoder_embed_dim = encoder.mae.embed_dim
         else:
